@@ -97,7 +97,7 @@ static int escape_iterations(double zr, double zi, double cr, double ci)
     return iteration;
 }
 
-/* Яркая циклическая палитра, похожая на цветные графики btop. */
+/* Яркая циклическая палитра. */
 static uint32_t color_for(int iteration)
 {
     if (iteration == MAX_ITERATIONS)
