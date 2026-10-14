@@ -244,8 +244,27 @@ static void update_selection(App *app, double x, double y)
 {
     int width = gtk_widget_get_width(app->drawing_area);
     int height = gtk_widget_get_height(app->drawing_area);
-    app->selection_x1 = fmax(0, fmin(x, width));
-    app->selection_y1 = fmax(0, fmin(y, height));
+    double dx = x - app->selection_x0;
+    double dy = y - app->selection_y0;
+    double ratio = (double)width / height;
+
+    if (fabs(dx) > fabs(dy) * ratio)
+        dy = copysign(fabs(dx) / ratio, dy == 0 ? 1 : dy);
+    else
+        dx = copysign(fabs(dy) * ratio, dx == 0 ? 1 : dx);
+
+    double scale = 1.0;
+    if (app->selection_x0 + dx < 0)
+        scale = fmin(scale, app->selection_x0 / -dx);
+    if (app->selection_x0 + dx > width)
+        scale = fmin(scale, (width - app->selection_x0) / dx);
+    if (app->selection_y0 + dy < 0)
+        scale = fmin(scale, app->selection_y0 / -dy);
+    if (app->selection_y0 + dy > height)
+        scale = fmin(scale, (height - app->selection_y0) / dy);
+
+    app->selection_x1 = app->selection_x0 + dx * scale;
+    app->selection_y1 = app->selection_y0 + dy * scale;
 }
 
 static void drag_begin_cb(GtkGestureDrag *gesture, double x, double y,
