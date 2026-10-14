@@ -294,21 +294,7 @@ static void drag_end_cb(GtkGestureDrag *gesture, double offset_x,
         set_status(app, "Слишком маленькая область");
         return;
     }
-    /* Расширяем выбранную область до пропорций холста, не искажая фрактал. */
-    double canvas_ratio = (double)gtk_widget_get_width(app->drawing_area) /
-                          gtk_widget_get_height(app->drawing_area);
-    double selected_ratio = (right - left) / (top - bottom);
-    if (selected_ratio > canvas_ratio) {
-        double center = (top + bottom) / 2.0;
-        double new_height = (right - left) / canvas_ratio;
-        top = center + new_height / 2.0;
-        bottom = center - new_height / 2.0;
-    } else {
-        double center = (left + right) / 2.0;
-        double new_width = (top - bottom) * canvas_ratio;
-        left = center - new_width / 2.0;
-        right = center + new_width / 2.0;
-    }
+    /* Оставляем ровно ту область, которая находилась внутри рамки. */
     app->view = (Viewport){left, right, bottom, top};
     redraw_now(app);
 }
