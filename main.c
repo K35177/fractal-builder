@@ -13,6 +13,11 @@ typedef struct {
 } Viewport;
 
 typedef struct {
+    double real;
+    double imaginary;
+} Complex;
+
+typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
     GtkWidget *type_dropdown;
@@ -85,14 +90,26 @@ static void pixel_to_complex(const App *app, double x, double y,
     *imaginary = map_value(y, 0.0, height, app->view.top, app->view.bottom);
 }
 
-/* Главная формула проекта: z(n + 1) = z(n)^2 + c. */
-static int escape_iterations(double zr, double zi, double cr, double ci)
+static double complex_length_squared(Complex number)
+{
+    return number.real * number.real +
+           number.imaginary * number.imaginary;
+}
+
+/* Возвращает результат z^2 + c. */
+static Complex complex_square_add(Complex z, Complex c)
+{
+    Complex result;
+    result.real = z.real * z.real - z.imaginary * z.imaginary + c.real;
+    result.imaginary = 2.0 * z.real * z.imaginary + c.imaginary;
+    return result;
+}
+
+static int escape_iterations(Complex z, Complex c)
 {
     int iteration = 0;
-    while (iteration < MAX_ITERATIONS && zr * zr + zi * zi <= 4.0) {
-        double next_real = zr * zr - zi * zi + cr;
-        zi = 2.0 * zr * zi + ci;
-        zr = next_real;
+    while (iteration < MAX_ITERATIONS && complex_length_squared(z) <= 4.0) {
+        z = complex_square_add(z, c);
         ++iteration;
     }
     return iteration;
@@ -144,11 +161,15 @@ static void render_fractal(App *app)
         for (int px = 0; px < width; ++px) {
             double point_r = map_value(px, 0, width - 1,
                                        app->view.left, app->view.right);
-            double zr = julia ? point_r : 0.0;
-            double zi = julia ? point_i : 0.0;
-            double cr = julia ? fixed_cr : point_r;
-            double ci = julia ? fixed_ci : point_i;
-            row[px] = color_for(escape_iterations(zr, zi, cr, ci));
+            Complex z = {
+                julia ? point_r : 0.0,
+                julia ? point_i : 0.0
+            };
+            Complex c = {
+                julia ? fixed_cr : point_r,
+                julia ? fixed_ci : point_i
+            };
+            row[px] = color_for(escape_iterations(z, c));
         }
     }
     cairo_surface_mark_dirty(app->surface);
@@ -599,8 +620,10 @@ static void activate(GtkApplication *application, gpointer user_data)
 
 static int self_test(void)
 {
-    int inside = escape_iterations(0, 0, 0, 0);
-    int outside = escape_iterations(0, 0, 2, 2);
+    Complex zero = {0.0, 0.0};
+    Complex far_point = {2.0, 2.0};
+    int inside = escape_iterations(zero, zero);
+    int outside = escape_iterations(zero, far_point);
     if (inside != MAX_ITERATIONS || outside >= 5) {
         fputs("Ошибка самопроверки вычислений.\n", stderr);
         return EXIT_FAILURE;
