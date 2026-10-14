@@ -19,6 +19,7 @@ typedef struct {
     GtkWidget *julia_controls;
     GtkWidget *real_scale;
     GtkWidget *imag_scale;
+    GtkWidget *constant_label;
     GtkWidget *plane_label;
     GtkWidget *cursor_label;
     GtkWidget *status_label;
@@ -349,10 +350,20 @@ static gboolean scroll_cb(GtkEventControllerScroll *controller,
     return TRUE;
 }
 
+static void update_constant_label(App *app)
+{
+    double real = gtk_range_get_value(GTK_RANGE(app->real_scale));
+    double imaginary = gtk_range_get_value(GTK_RANGE(app->imag_scale));
+    char text[80];
+    g_snprintf(text, sizeof text, "c = %.3f %+.3fi", real, imaginary);
+    gtk_label_set_text(GTK_LABEL(app->constant_label), text);
+}
+
 static void scale_changed_cb(GtkRange *range, gpointer user_data)
 {
     App *app = user_data;
     (void)range;
+    update_constant_label(app);
     if (is_julia(app)) {
         set_status(app, "Изменение c • выполняется отрисовка…");
         schedule_redraw(app);
@@ -431,6 +442,7 @@ static void install_css(void)
         ".title { color: #f7768e; font-size: 12px; font-weight: 800; }"
         ".hint { color: #7f849c; font-size: 10px; }"
         ".status { color: #89dceb; font-size: 11px; }"
+        ".constant { color: #f9e2af; font-size: 12px; font-weight: 800; }"
         ".info { background: rgba(17,21,30,0.92); color: #89dceb;"
         "  border: 1px solid #585b70; border-radius: 5px; padding: 6px 9px; }"
         ".primary { background: #745bba; color: #ffffff; font-weight: 800; }"
@@ -495,6 +507,11 @@ static void activate(GtkApplication *application, gpointer user_data)
                                          &app->imag_scale, 0.27);
     gtk_box_append(GTK_BOX(app->julia_controls), real_row);
     gtk_box_append(GTK_BOX(app->julia_controls), imag_row);
+    app->constant_label = gtk_label_new(NULL);
+    gtk_widget_set_halign(app->constant_label, GTK_ALIGN_START);
+    gtk_widget_add_css_class(app->constant_label, "constant");
+    gtk_box_append(GTK_BOX(app->julia_controls), app->constant_label);
+    update_constant_label(app);
     gtk_widget_set_sensitive(app->julia_controls, FALSE);
     gtk_box_append(GTK_BOX(sidebar), app->julia_controls);
 
